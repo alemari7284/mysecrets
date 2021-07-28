@@ -12,18 +12,6 @@ const jwt = require("jsonwebtoken");
 
 app.use(express.json()); //replaces body-parser
 app.use(cors())
-app.use(cookieParser())
-
-
-app.use(session({
-    key: "userId",
-    secret: "secret",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        expires: 60
-    }
-}))
 
 const userSchema = new mongoose.Schema({
     username: String,
@@ -34,24 +22,6 @@ const User = new mongoose.model("User", userSchema);
 
 
 mongoose.connect("mongodb://localhost:27017/userDB", {useNewUrlParser: true, useUnifiedTopology: true });
-
-// const verifyJWT = (req, res, next) => {
-//     const token = req.headers["x-access-token"]
-
-//     if (!token) {
-//         res.send("I need a token, provide one")
-//     } else {
-//         jwt.verify(token, "jwtSecret", (err, decoded) => {
-//             if (err) {
-//                 res.json({auth: false, message: "U failed to authenticate"})
-//             } else {
-//                 req.user = decoded.username;
-//                 next();
-//             }
-//         })
-//     }
-// }
-// app.use(verifyJWT)
 
 
 app.post("/login", (req, res) => {
@@ -66,7 +36,8 @@ app.post("/login", (req, res) => {
             bcrypt.compare(password, foundUser.password, (error, response) => {
                 if (response) {
                     const token = jwt.sign({username: foundUser.username}, "jwtSecret", { expiresIn: "35s"})
-                    res.json({auth: true, token})
+                    const refreshToken = jwt.sign({username: req.body.username}, "jwtSecret")
+                    res.json({auth: true, message: "successfully logged", token, refreshToken})
                 } else {
                     res.status(403).send("Wrong username/password combination");
                 }
@@ -75,10 +46,18 @@ app.post("/login", (req, res) => {
     });
 });
 
+app.post("/token", (req, res) => {
+    const refreshToken = req.body.refreshToken;
+    jwt.verify(refreshToken, "jwtSecret", (err, result) => {
+        if (err) return res.sendStatus(401)
+        const token = jwt.sign({username: req.body.username}, "jwtSecret", {expiresIn: "35s"});
+        res.json(token);
+    })
+})
+
 app.post("/register", (req, res) => {
     console.log(req.body)
     bcrypt.hash(req.body.password, saltRounds, (err, hash) => {
-
         if (err) {
             console.log(err);
         }
@@ -92,13 +71,12 @@ app.post("/register", (req, res) => {
                 res.json({registered: false, message: err})
             } else {
                 const token = jwt.sign({username: req.body.username}, "jwtSecret", { expiresIn: "35s"})
-                res.json({registered: true, message: "successfully registered", token})
+                const refreshToken = jwt.sign({username: req.body.username}, "jwtSecret")
+                res.json({registered: true, message: "successfully registered", token, refreshToken})
             }
         })
     })
 })
-
-
 
 
 app.listen(4000, () => {
