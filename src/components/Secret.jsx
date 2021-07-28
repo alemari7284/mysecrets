@@ -37,6 +37,7 @@ export default function Secret() {
         const newToken = await axios.post("http://localhost:4000/token", {refreshToken: sessionStorage.getItem("refreshToken")}, {headers: {"Content-Type": "application/json"}})
         sessionStorage.removeItem("token");
         sessionStorage.setItem("token", newToken.data);
+        setSecrets([]);
         setLoading(false);
         setExpired(false);
         setStartCounting(true);
