@@ -37,6 +37,7 @@ export default function Secret() {
         const newToken = await axios.post("http://localhost:4000/token", {refreshToken: sessionStorage.getItem("refreshToken")}, {headers: {"Content-Type": "application/json"}})
         sessionStorage.removeItem("token");
         sessionStorage.setItem("token", newToken.data);
+        setLoading(false);
         setExpired(false);
         setStartCounting(true);
         setSeconds(35);
@@ -46,7 +47,7 @@ export default function Secret() {
         <div>
             <h1>SECRETS - private area</h1>
             <button onClick={getSecrets}>GET SECRETS</button>
-            {loading ? <h1>loading...</h1> : null}
+            {!expired && loading ? <h1>loading...</h1> : null}
             <ul>
                 {!expired && secrets && secrets.map((x, i) => <li key={i}> title: {_.upperCase(x.title)}, author: {_.upperCase(x.author)}</li>)}
             </ul>
